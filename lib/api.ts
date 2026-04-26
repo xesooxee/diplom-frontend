@@ -1,4 +1,7 @@
-export const API_BASE = "http://localhost:8000";
+export const API_BASE =
+  typeof window === "undefined"
+    ? "http://backend:8000"
+    : "http://localhost:8000";  
 
 function authHeaders(): HeadersInit {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
