@@ -1,17 +1,20 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { X, CheckCircle, AlertCircle, Search, Check } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { AlertCircle, Check, CheckCircle, Leaf, Search, User, UtensilsCrossed, X } from "lucide-react"
 import { PatientFormFields, PatientFormValues } from "@/components/patient-form-fields"
 import { ResultCard } from "@/components/result-card"
 import {
+  AdminDish,
+  DishIngredient,
+  FoodSearchItem,
+  FoodPredictRequest,
+  FoodPredictResponse,
+  getAdminDishes,
   getModels,
+  ModelInfo,
   predictFood,
   searchFoods,
-  FoodSearchItem,
-  FoodPredictResponse,
-  ModelInfo,
-  FoodPredictRequest,
 } from "@/lib/api"
 
 const DEFAULT_FORM: PatientFormValues = {
@@ -32,9 +35,8 @@ const MODEL_LABELS: Record<string, string> = {
   xgb: "XGBoost",
 }
 
-interface SelectedFood {
-  food: FoodSearchItem
-  amount: number
+function ingredientName(item: Pick<DishIngredient, "name" | "display_name">) {
+  return item.display_name || item.name
 }
 
 export default function FoodPage() {
@@ -42,10 +44,14 @@ export default function FoodPage() {
   const [form, setForm] = useState<PatientFormValues>(DEFAULT_FORM)
   const [selectedModel, setSelectedModel] = useState("rf")
 
-  const [allFoods, setAllFoods] = useState<FoodSearchItem[]>([])
-  const [foodsLoading, setFoodsLoading] = useState(true)
+  const [dishes, setDishes] = useState<AdminDish[]>([])
+  const [dishesLoading, setDishesLoading] = useState(true)
   const [filter, setFilter] = useState("")
-  const [selected, setSelected] = useState<Record<string, SelectedFood>>({})
+  const [selected, setSelected] = useState<Record<string, AdminDish>>({})
+  const [allIngredients, setAllIngredients] = useState<FoodSearchItem[]>([])
+  const [ingredientFilter, setIngredientFilter] = useState("")
+  const [ingredientsLoading, setIngredientsLoading] = useState(true)
+  const [checkedIngredients, setCheckedIngredients] = useState<Record<string, DishIngredient>>({})
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,56 +66,111 @@ export default function FoodPage() {
         setSelectedModel(defaultKey)
       }
     })
-    // Load all foods on mount
-    searchFoods("").then((foods) => {
-      setAllFoods(foods)
-      setFoodsLoading(false)
-    }).catch(() => setFoodsLoading(false))
+
+    getAdminDishes()
+      .then(setDishes)
+      .finally(() => setDishesLoading(false))
+
+    searchFoods("")
+      .then(setAllIngredients)
+      .finally(() => setIngredientsLoading(false))
   }, [])
 
-  const filteredFoods = filter.trim()
-    ? allFoods.filter((f) => f.name.toLowerCase().includes(filter.toLowerCase()))
-    : allFoods
+  const filteredDishes = filter.trim()
+    ? dishes.filter((dish) => dish.name.toLowerCase().includes(filter.toLowerCase()))
+    : dishes
 
-  function toggleFood(food: FoodSearchItem) {
+  const selectedDishes = useMemo(() => Object.values(selected), [selected])
+  const selectedIngredients = useMemo(() => Object.values(checkedIngredients), [checkedIngredients])
+  const filteredIngredients = ingredientFilter.trim()
+    ? allIngredients.filter((item) => item.name.toLowerCase().includes(ingredientFilter.toLowerCase()))
+    : allIngredients
+
+  function toggleDish(dish: AdminDish) {
     setSelected((prev) => {
+      if (prev[dish.id]) {
+        const next = { ...prev }
+        delete next[dish.id]
+        const remainingDishes = Object.values(next)
+        setCheckedIngredients((prevIngredients) => {
+          const nextIngredients = { ...prevIngredients }
+          for (const ingredient of dish.ingredients) {
+            const usedByOtherDish = remainingDishes.some((otherDish) =>
+              otherDish.ingredients.some((item) => item.name === ingredient.name)
+            )
+            if (!usedByOtherDish) delete nextIngredients[ingredient.name]
+          }
+          return nextIngredients
+        })
+        return next
+      }
+      setCheckedIngredients((prevIngredients) => {
+        const nextIngredients = { ...prevIngredients }
+        for (const ingredient of dish.ingredients) {
+          nextIngredients[ingredient.name] = ingredient
+        }
+        return nextIngredients
+      })
+      return { ...prev, [dish.id]: dish }
+    })
+  }
+
+  function removeDish(id: string) {
+    setSelected((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+    const dish = selected[id]
+    if (!dish) return
+    const remainingDishes = Object.values(selected).filter((item) => item.id !== id)
+    setCheckedIngredients((prevIngredients) => {
+      const nextIngredients = { ...prevIngredients }
+      for (const ingredient of dish.ingredients) {
+        const usedByOtherDish = remainingDishes.some((otherDish) =>
+          otherDish.ingredients.some((item) => item.name === ingredient.name)
+        )
+        if (!usedByOtherDish) delete nextIngredients[ingredient.name]
+      }
+      return nextIngredients
+    })
+  }
+
+  function toggleIngredient(food: FoodSearchItem) {
+    setCheckedIngredients((prev) => {
       if (prev[food.name]) {
         const next = { ...prev }
         delete next[food.name]
         return next
       }
-      return { ...prev, [food.name]: { food, amount: 100 } }
+      return {
+        ...prev,
+        [food.name]: {
+          ...food,
+          amount: 100,
+        },
+      }
     })
   }
 
-  function updateAmount(name: string, amount: number) {
-    setSelected((prev) => ({
+  function updateIngredientAmount(name: string, amount: number) {
+    setCheckedIngredients((prev) => ({
       ...prev,
       [name]: { ...prev[name], amount },
     }))
   }
 
-  function removeFood(name: string) {
-    setSelected((prev) => {
-      const next = { ...prev }
-      delete next[name]
-      return next
-    })
-  }
-
-  const selectedList = Object.values(selected)
-
   function computeNutrition() {
-    return selectedList.reduce(
-      (acc, { food, amount }) => {
-        const r = amount / 100
+    return selectedIngredients.reduce(
+      (acc, item) => {
+        const r = item.amount / 100
         return {
-          calories: acc.calories + food.calories * r,
-          carbs: acc.carbs + food.carbohydrate * r,
-          sugars: acc.sugars + food.sugars * r,
-          fiber: acc.fiber + food.fiber * r,
-          protein: acc.protein + food.protein * r,
-          fat: acc.fat + food.fat * r,
+          calories: acc.calories + item.calories * r,
+          carbs: acc.carbs + item.carbohydrate * r,
+          sugars: acc.sugars + item.sugars * r,
+          fiber: acc.fiber + item.fiber * r,
+          protein: acc.protein + item.protein * r,
+          fat: acc.fat + item.fat * r,
         }
       },
       { calories: 0, carbs: 0, sugars: 0, fiber: 0, protein: 0, fat: 0 }
@@ -121,7 +182,7 @@ export default function FoodPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (selectedList.length === 0) {
+    if (selectedIngredients.length === 0) {
       setError("Дор хаяж 1 хоол сонгоно уу")
       return
     }
@@ -130,7 +191,7 @@ export default function FoodPage() {
     setLoading(true)
     try {
       const body: FoodPredictRequest = {
-        foods: selectedList.map(({ food, amount }) => ({ name: food.name, amount })),
+        foods: selectedIngredients.map((item) => ({ name: item.name, amount: item.amount })),
         gender: form.gender,
         age: form.age,
         hypertension: form.hypertension,
@@ -158,83 +219,89 @@ export default function FoodPage() {
     { label: "Өөх тос", val: nutrition.fat.toFixed(1), unit: "г", color: "text-yellow-600 bg-yellow-50", bar: Math.min(100, (nutrition.fat / 65) * 100) },
   ]
 
+  function ingredientLabel(item: DishIngredient) {
+    return `${ingredientName(item)} ${item.amount}г`
+  }
+
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-slate-900">Хоолны эрсдэл</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Идсэн хоол хүнсээс чихрийн шижингийн эрсдэлийг тооцоолно</p>
+        <p className="text-slate-500 text-sm mt-0.5">Админ самбарт бүртгэсэн хоолны орцоор чихрийн шижингийн эрсдэлийг тооцоолно</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-
-          {/* Left: Food picker + selected */}
           <div className="xl:col-span-2 space-y-4">
-
-            {/* Food grid card */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
-                    <span className="text-base">🥗</span>
+                    <Leaf size={15} className="text-orange-500" />
                   </div>
                   <h2 className="font-semibold text-slate-800 text-sm">Хоол сонгох</h2>
-                  {!foodsLoading && (
-                    <span className="text-xs text-slate-400">{allFoods.length} хоол</span>
+                  {!dishesLoading && (
+                    <span className="text-xs text-slate-400">{dishes.length} хоол</span>
                   )}
                 </div>
-                {selectedList.length > 0 && (
+                {selectedDishes.length > 0 && (
                   <span className="bg-teal-100 text-teal-700 text-xs font-bold px-2.5 py-1 rounded-full">
-                    {selectedList.length} сонгосон
+                    {selectedDishes.length} сонгосон
                   </span>
                 )}
               </div>
 
               <div className="p-4 space-y-3">
-                {/* Filter input */}
-                <div className="relative">
-                  <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    placeholder="Хоол шүүх..."
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 text-sm transition-all bg-slate-50"
-                  />
-                </div>
+                <input
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  placeholder="Бүртгэсэн хоол шүүх..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 text-sm transition-all bg-slate-50"
+                />
 
-                {/* Food grid */}
-                {foodsLoading ? (
+                {dishesLoading ? (
                   <div className="flex items-center justify-center py-10 gap-3">
                     <div className="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
                     <span className="text-sm text-slate-400">Хоолны жагсаалт ачааллаж байна...</span>
                   </div>
-                ) : filteredFoods.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 text-sm">Хоол олдсонгүй</div>
+                ) : filteredDishes.length === 0 ? (
+                  <div className="text-center py-10 text-slate-400 text-sm">
+                    Хоол олдсонгүй. Эхлээд админ самбарт хоол, орц бүртгэнэ үү.
+                  </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1">
-                    {filteredFoods.map((food) => {
-                      const isSelected = !!selected[food.name]
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
+                    {filteredDishes.map((dish) => {
+                      const isSelected = !!selected[dish.id]
                       return (
                         <button
-                          key={food.name}
+                          key={dish.id}
                           type="button"
-                          onClick={() => toggleFood(food)}
-                          className={`relative text-left px-3 py-2.5 rounded-xl border-2 text-xs transition-all flex flex-col gap-0.5 ${
+                          onClick={() => toggleDish(dish)}
+                          className={`relative text-left px-4 py-3 rounded-xl border-2 text-sm transition-all ${
                             isSelected
                               ? "border-teal-400 bg-teal-50"
                               : "border-slate-100 bg-slate-50 hover:border-teal-200 hover:bg-teal-50/40"
                           }`}
                         >
                           {isSelected && (
-                            <div className="absolute top-2 right-2 w-4 h-4 bg-teal-500 rounded-full flex items-center justify-center">
-                              <Check size={10} className="text-white" strokeWidth={3} />
+                            <div className="absolute top-3 right-3 w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center">
+                              <Check size={12} className="text-white" strokeWidth={3} />
                             </div>
                           )}
-                          <span className={`font-semibold truncate pr-4 ${isSelected ? "text-teal-800" : "text-slate-700"}`}>
-                            {food.name}
+                          <span className={`font-semibold block pr-7 ${isSelected ? "text-teal-800" : "text-slate-800"}`}>
+                            {dish.name}
                           </span>
-                          <span className="text-slate-400">{food.calories} ккал/100г</span>
+                          <span className="text-xs text-slate-400 mt-1 block">{dish.ingredients.length} орц</span>
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {dish.ingredients.slice(0, 4).map((item) => (
+                              <span key={`${dish.id}-${item.name}`} className="text-[11px] bg-white border border-slate-100 rounded-full px-2 py-0.5 text-slate-500">
+                                {ingredientLabel(item)}
+                              </span>
+                            ))}
+                            {dish.ingredients.length > 4 && (
+                              <span className="text-[11px] text-slate-400">+{dish.ingredients.length - 4}</span>
+                            )}
+                          </div>
                         </button>
                       )
                     })}
@@ -243,41 +310,107 @@ export default function FoodPage() {
               </div>
             </div>
 
-            {/* Selected foods list */}
-            {selectedList.length > 0 && (
+            {selectedDishes.length > 0 && (
               <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
                   <div className="w-7 h-7 bg-teal-50 rounded-lg flex items-center justify-center">
-                    <span className="text-base">🍽️</span>
+                    <UtensilsCrossed size={15} className="text-teal-500" />
                   </div>
-                  <h2 className="font-semibold text-slate-800 text-sm">Сонгосон хоолнууд</h2>
+                  <div>
+                    <h2 className="font-semibold text-slate-800 text-sm">Орц сонгох</h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Сонгосон хоолтой холбоотой орцууд автоматаар check хийгдэнэ
+                    </p>
+                  </div>
                 </div>
-                <div className="p-4 space-y-2">
-                  {selectedList.map(({ food, amount }) => (
-                    <div key={food.name} className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-100">
-                      <span className="flex-1 text-sm font-medium text-slate-800 truncate">{food.name}</span>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <input
-                          type="number"
-                          min={1}
-                          value={amount}
-                          onChange={(e) => updateAmount(food.name, parseFloat(e.target.value) || 0)}
-                          className="w-20 px-3 py-1.5 text-sm border border-slate-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 bg-white"
-                        />
-                        <span className="text-xs text-slate-400 font-medium">г</span>
+
+                <div className="p-4 space-y-4">
+                  {selectedDishes.map((dish) => (
+                    <div key={dish.id} className="rounded-xl bg-slate-50 border border-slate-100 p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-900 text-sm truncate">{dish.name}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{dish.ingredients.length} холбосон орц</p>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => removeFood(food.name)}
-                          className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors"
+                          onClick={() => removeDish(dish.id)}
+                          className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors"
                         >
-                          <X size={13} className="text-red-500" />
+                          <X size={14} className="text-red-500" />
                         </button>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {dish.ingredients.map((item) => (
+                          <span key={`${dish.id}-${item.name}`} className="text-xs bg-white border border-slate-100 rounded-full px-2 py-1 text-slate-500">
+                            {ingredientLabel(item)}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   ))}
+
+                  <div className="relative">
+                    <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      value={ingredientFilter}
+                      onChange={(e) => setIngredientFilter(e.target.value)}
+                      placeholder="Бүх орцноос хайх..."
+                      className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 text-sm transition-all bg-slate-50"
+                    />
+                  </div>
+
+                  {ingredientsLoading ? (
+                    <div className="text-center py-8 text-sm text-slate-400">Орцууд ачааллаж байна...</div>
+                  ) : filteredIngredients.length === 0 ? (
+                    <div className="text-center py-8 text-sm text-slate-400">Орц олдсонгүй</div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-80 overflow-y-auto pr-1">
+                      {filteredIngredients.map((food) => {
+                        const checked = checkedIngredients[food.name]
+                        return (
+                          <div
+                            key={food.name}
+                            className={`rounded-xl border-2 px-3 py-2.5 transition-all ${
+                              checked ? "border-teal-400 bg-teal-50" : "border-slate-100 bg-slate-50"
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <button
+                                type="button"
+                                onClick={() => toggleIngredient(food)}
+                                className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${
+                                  checked ? "bg-teal-500 border-teal-500" : "bg-white border-slate-300"
+                                }`}
+                              >
+                                {checked && <Check size={13} className="text-white" strokeWidth={3} />}
+                              </button>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-semibold truncate ${checked ? "text-teal-800" : "text-slate-700"}`}>
+                                  {food.display_name || food.name}
+                                </p>
+                                <p className="text-xs text-slate-400 mt-0.5">{food.calories} ккал/100г</p>
+                              </div>
+                              {checked && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={checked.amount}
+                                    onChange={(e) => updateIngredientAmount(food.name, parseFloat(e.target.value) || 0)}
+                                    className="w-20 px-2 py-1.5 text-sm border border-slate-200 rounded-lg text-center bg-white"
+                                  />
+                                  <span className="text-xs text-slate-400">г</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
 
-                {/* Nutrition summary */}
                 <div className="px-4 pb-4 grid grid-cols-3 gap-2">
                   {nutrientItems.map((n) => (
                     <div key={n.label} className="space-y-1">
@@ -295,12 +428,11 @@ export default function FoodPage() {
             )}
           </div>
 
-          {/* Right: Patient info + model */}
           <div className="space-y-4">
             <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
                 <div className="w-7 h-7 bg-teal-50 rounded-lg flex items-center justify-center">
-                  <span className="text-base">👤</span>
+                  <User size={15} className="text-teal-500" />
                 </div>
                 <h2 className="font-semibold text-slate-800 text-sm">Өвчтөний мэдээлэл</h2>
               </div>
@@ -347,7 +479,7 @@ export default function FoodPage() {
 
         <button
           type="submit"
-          disabled={loading || selectedList.length === 0}
+          disabled={loading || selectedIngredients.length === 0}
           className="w-full py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-sm shadow-teal-200"
         >
           {loading ? (
@@ -373,7 +505,7 @@ export default function FoodPage() {
             <div className="w-16 h-16 rounded-full border-4 border-teal-100 border-t-teal-500 animate-spin" />
             <div className="text-center">
               <p className="font-semibold text-slate-800">Тооцоолж байна...</p>
-              <p className="text-slate-400 text-sm mt-1">Хоол тэжээлийн дүн шинжилгээ хийж байна</p>
+              <p className="text-slate-400 text-sm mt-1">Хоолны орцод дүн шинжилгээ хийж байна</p>
             </div>
           </div>
         </div>

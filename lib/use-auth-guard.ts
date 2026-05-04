@@ -9,5 +9,5 @@ export function useAuthGuard() {
     if (!localStorage.getItem("token")) {
       router.replace("/");
     }
-  }, [router]);
+  }, []);
 }

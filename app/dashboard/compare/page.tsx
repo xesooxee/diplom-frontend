@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AlertCircle, BarChart3, TrendingUp } from "lucide-react"
+import { AlertCircle, BarChart3, TrendingUp, GitBranch, Zap, Cpu, Bot, User, Check } from "lucide-react"
 import {
   getModels,
   compare,
@@ -28,11 +28,11 @@ const RISK_CONFIG: Record<string, { bg: string; text: string; border: string }> 
   Өндөр: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200" },
 }
 
-const MODEL_INFO: Record<string, { icon: string; desc: string; color: string }> = {
-  rf:  { icon: "🌲", desc: "Шийдлийн мод дээр суурилсан, хэт суралцахаас сэргийлэх", color: "bg-teal-50 border-teal-200" },
-  lr:  { icon: "📈", desc: "Шугаман регрессийн загвар, тайлбарлах боломжтой", color: "bg-blue-50 border-blue-200" },
-  svm: { icon: "⚡", desc: "Тусгаарлах гиперплейн дээр суурилсан загвар", color: "bg-violet-50 border-violet-200" },
-  xgb: { icon: "🚀", desc: "Gradient boosting, өндөр нарийвчлалтай", color: "bg-orange-50 border-orange-200" },
+const MODEL_INFO: Record<string, { icon: React.ElementType; desc: string; color: string; iconColor: string }> = {
+  rf:  { icon: GitBranch,  desc: "Шийдлийн мод дээр суурилсан, хэт суралцахаас сэргийлэх", color: "bg-teal-50 border-teal-200",   iconColor: "text-teal-600" },
+  lr:  { icon: TrendingUp, desc: "Шугаман регрессийн загвар, тайлбарлах боломжтой",         color: "bg-blue-50 border-blue-200",   iconColor: "text-blue-600" },
+  svm: { icon: Zap,        desc: "Тусгаарлах гиперплейн дээр суурилсан загвар",             color: "bg-violet-50 border-violet-200", iconColor: "text-violet-600" },
+  xgb: { icon: Cpu,        desc: "Gradient boosting, өндөр нарийвчлалтай",                  color: "bg-orange-50 border-orange-200", iconColor: "text-orange-600" },
 }
 
 const SMOKING_OPTIONS = [
@@ -104,7 +104,7 @@ export default function ComparePage() {
           <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
               <div className="w-7 h-7 bg-violet-50 rounded-lg flex items-center justify-center">
-                <span className="text-base">👤</span>
+                <User size={14} className="text-violet-600" />
               </div>
               <h2 className="font-semibold text-slate-800 text-sm">Өвчтөний мэдээлэл</h2>
             </div>
@@ -124,7 +124,7 @@ export default function ComparePage() {
                           : "border-slate-200 text-slate-600 hover:border-teal-200"
                       }`}
                     >
-                      {g === "Female" ? "🚺 Эмэгтэй" : "🚹 Эрэгтэй"}
+                      {g === "Female" ? " Эмэгтэй" : " Эрэгтэй"}
                     </button>
                   ))}
                 </div>
@@ -267,7 +267,9 @@ export default function ComparePage() {
         <div className="space-y-4">
           {!results && !loading && (
             <div className="bg-white rounded-2xl border border-slate-100 p-8 flex flex-col items-center justify-center text-center h-full min-h-64">
-              <div className="w-14 h-14 bg-violet-50 rounded-2xl flex items-center justify-center text-2xl mb-4">📊</div>
+              <div className="w-14 h-14 bg-violet-50 rounded-2xl flex items-center justify-center mb-4">
+                <BarChart3 size={24} className="text-violet-400" />
+              </div>
               <p className="font-semibold text-slate-700 text-sm mb-1">Загвар харьцуулалт</p>
               <p className="text-slate-400 text-xs max-w-xs leading-relaxed">
                 Зүүн талд мэдээлэл оруулж, "Харьцуулах" товч дарна уу
@@ -300,7 +302,7 @@ export default function ComparePage() {
                 </div>
                 <div className="p-6 space-y-3">
                   {results.map((r) => {
-                    const info = MODEL_INFO[r.model_key] ?? { icon: "🤖", desc: "", color: "bg-slate-50 border-slate-200" }
+                    const info = MODEL_INFO[r.model_key] ?? { icon: Bot, desc: "", color: "bg-slate-50 border-slate-200", iconColor: "text-slate-500" }
                     const riskConf = RISK_CONFIG[r.risk_level] ?? { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200" }
                     const isModels = models[r.model_key]
                     return (
@@ -314,12 +316,16 @@ export default function ComparePage() {
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-xl">{info.icon}</span>
+                            <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center shrink-0">
+                              <info.icon size={15} className={info.iconColor} />
+                            </div>
                             <div>
                               <p className="font-semibold text-slate-900 text-sm">
                                 {isModels?.name ?? r.model_name}
                                 {r.model_key === best?.model_key && (
-                                  <span className="ml-2 text-xs bg-violet-200 text-violet-800 px-1.5 py-0.5 rounded-full">✓ Шилдэг</span>
+                                  <span className="ml-2 inline-flex items-center gap-0.5 text-xs bg-violet-200 text-violet-800 px-1.5 py-0.5 rounded-full">
+                                    <Check size={10} />Шилдэг
+                                  </span>
                                 )}
                               </p>
                               <p className="text-xs text-slate-400">{info.desc}</p>

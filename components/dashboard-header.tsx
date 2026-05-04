@@ -27,7 +27,7 @@ export function DashboardHeader({ title }: { title?: string }) {
           <h1 className="text-base font-bold text-slate-900">{title}</h1>
         ) : (
           <>
-            <p className="text-sm font-semibold text-slate-900">Өдрийн мэнд! 👋</p>
+            <p className="text-sm font-semibold text-slate-900">Өдрийн мэнд! </p>
             <p className="text-xs text-slate-400 truncate max-w-xs">{email}</p>
           </>
         )}
@@ -40,10 +40,7 @@ export function DashboardHeader({ title }: { title?: string }) {
           Идэвхтэй
         </div>
 
-        {/* Notification */}
-        <button className="w-9 h-9 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center transition-colors border border-slate-100">
-          <Bell size={15} className="text-slate-500" />
-        </button>
+  
 
         {/* Avatar + email */}
         <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-100">

@@ -79,7 +79,6 @@ export function PatientFormFields({
                   : "border-slate-200 text-slate-600 hover:border-teal-200 hover:bg-teal-50/30"
               }`}
             >
-              <span>{g === "Female" ? "🚺" : "🚹"}</span>
               {g === "Female" ? "Эмэгтэй" : "Эрэгтэй"}
             </button>
           ))}

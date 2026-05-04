@@ -2,12 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Activity, Utensils, User } from "lucide-react"
+import { LayoutDashboard, Activity, Utensils, User, Lightbulb, ShieldCheck } from "lucide-react"
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Хяналтын самбар" },
   { href: "/dashboard/predict", icon: Activity, label: "Эрсдэл тооцоолох" },
   { href: "/dashboard/food", icon: Utensils, label: "Хоолны эрсдэл" },
+  { href: "/dashboard/admin", icon: ShieldCheck, label: "Админ самбар" },
   { href: "/dashboard/profile", icon: User, label: "Профайл" },
 ]
 
@@ -67,7 +68,7 @@ export function Sidebar() {
       {/* Bottom health badge */}
       <div className="px-3 pb-4">
         <div className="bg-linear-to-br from-teal-500 to-cyan-500 rounded-2xl p-4 text-white">
-          <div className="text-lg mb-1">💡</div>
+          <Lightbulb size={18} className="text-white mb-1" />
           <p className="text-xs font-semibold mb-0.5">Эрүүл мэндийн зөвлөмж</p>
           <p className="text-xs text-white/75 leading-relaxed">
             Өдөр бүр 30 мин дасгал хөдөлгөөн хийх нь чихрийн шижингийн эрсдэлийг бууруулна.

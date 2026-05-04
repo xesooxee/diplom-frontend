@@ -2,12 +2,13 @@
 
 import { GaugeChart } from "@/components/gauge-chart"
 import { PredictResponse, FoodPredictResponse } from "@/lib/api"
-import { CheckCircle2 } from "lucide-react"
+import { CheckCircle2, AlertTriangle, AlertOctagon, Info } from "lucide-react"
+import React from "react"
 
-const RISK_CONFIG: Record<string, { bg: string; text: string; border: string; bar: string; icon: string }> = {
-  Бага:  { bg: "bg-green-50",  text: "text-green-700",  border: "border-green-200",  bar: "bg-green-500",  icon: "✅" },
-  Дунд:  { bg: "bg-amber-50",  text: "text-amber-700",  border: "border-amber-200",  bar: "bg-amber-500",  icon: "⚠️" },
-  Өндөр: { bg: "bg-red-50",    text: "text-red-700",    border: "border-red-200",    bar: "bg-red-500",    icon: "🚨" },
+const RISK_CONFIG: Record<string, { bg: string; text: string; border: string; bar: string; icon: React.ElementType; iconColor: string }> = {
+  Бага:  { bg: "bg-green-50",  text: "text-green-700",  border: "border-green-200",  bar: "bg-green-500",  icon: CheckCircle2,  iconColor: "text-green-600" },
+  Дунд:  { bg: "bg-amber-50",  text: "text-amber-700",  border: "border-amber-200",  bar: "bg-amber-500",  icon: AlertTriangle, iconColor: "text-amber-500" },
+  Өндөр: { bg: "bg-red-50",    text: "text-red-700",    border: "border-red-200",    bar: "bg-red-500",    icon: AlertOctagon,  iconColor: "text-red-500" },
 }
 
 interface ResultCardProps {
@@ -20,7 +21,7 @@ function isFoodPredictResponse(r: PredictResponse | FoodPredictResponse): r is F
 }
 
 export function ResultCard({ result, isFoodResult }: ResultCardProps) {
-  const risk = RISK_CONFIG[result.risk_level] ?? { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200", bar: "bg-gray-400", icon: "ℹ️" }
+  const risk = RISK_CONFIG[result.risk_level] ?? { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200", bar: "bg-gray-400", icon: Info, iconColor: "text-gray-500" }
   const foodResult = isFoodResult && isFoodPredictResponse(result) ? result : null
 
   const nutrients = foodResult
@@ -40,7 +41,7 @@ export function ResultCard({ result, isFoodResult }: ResultCardProps) {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
         {/* Risk banner */}
         <div className={`px-6 py-4 flex items-center gap-3 border-b ${risk.bg} ${risk.border}`}>
-          <span className="text-2xl">{risk.icon}</span>
+          <risk.icon size={24} className={risk.iconColor} />
           <div>
             <p className={`font-bold text-base ${risk.text}`}>{result.risk_level} эрсдэлтэй</p>
             <p className={`text-xs ${risk.text} opacity-75`}>Чихрийн шижингийн таамаглалын үр дүн</p>
@@ -76,7 +77,7 @@ export function ResultCard({ result, isFoodResult }: ResultCardProps) {
 
               {/* Prediction badge */}
               <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold ${risk.bg} ${risk.text} ${risk.border}`}>
-                <span className="text-base">{risk.icon}</span>
+                <risk.icon size={15} className={risk.iconColor} />
                 {result.label}
               </div>
 

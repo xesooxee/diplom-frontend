@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Activity, Utensils, BarChart3, TrendingUp, Heart, Shield } from "lucide-react"
+import { Activity, Utensils, BarChart3, TrendingUp, Heart, Shield, Leaf, Dumbbell, Droplets, Moon } from "lucide-react"
 
 const quickActions = [
   {
@@ -37,10 +37,10 @@ const quickActions = [
 ]
 
 const healthTips = [
-  { icon: "🥦", title: "Ногоо идэх", desc: "Өдөрт 5 өнгийн ногоо идэх нь чихрийн шижингээс сэргийлнэ." },
-  { icon: "🏃", title: "Дасгал хөдөлгөөн", desc: "7 хоногт дор хаяж 150 минут дунд зэргийн хөдөлгөөн хийгээрэй." },
-  { icon: "💧", title: "Ус уух", desc: "Өдөрт 8 аяга ус уух нь цусан дахь сахарыг тогтворжуулна." },
-  { icon: "😴", title: "Хангалттай унтах", desc: "7-9 цаг унтах нь инсулины эсэргүүцлийг бууруулна." },
+  { icon: Leaf,     iconColor: "text-green-600",  title: "Ногоо идэх",        desc: "Өдөрт 5 өнгийн ногоо идэх нь чихрийн шижингээс сэргийлнэ." },
+  { icon: Dumbbell, iconColor: "text-blue-600",   title: "Дасгал хөдөлгөөн",  desc: "7 хоногт дор хаяж 150 минут дунд зэргийн хөдөлгөөн хийгээрэй." },
+  { icon: Droplets, iconColor: "text-cyan-600",   title: "Ус уух",             desc: "Өдөрт 8 аяга ус уух нь цусан дахь сахарыг тогтворжуулна." },
+  { icon: Moon,     iconColor: "text-indigo-600", title: "Хангалттай унтах",   desc: "7-9 цаг унтах нь инсулины эсэргүүцлийг бууруулна." },
 ]
 
 export default function DashboardPage() {
@@ -72,9 +72,9 @@ export default function DashboardPage() {
         {/* Quick stats row */}
         <div className="relative z-10 grid grid-cols-3 gap-3 mt-6">
           {[
-            { icon: "🤖", val: "4", label: "AI Загвар" },
-            { icon: "📊", val: "3", label: "Тооцоолох арга" },
-            { icon: "💊", val: "∞", label: "Зөвлөмж" },
+            { val: "4", label: "AI Загвар" },
+            { val: "3", label: "Тооцоолох арга" },
+            { val: "∞", label: "Зөвлөмж" },
           ].map((s) => (
             <div key={s.label} className="bg-white/12 rounded-xl px-4 py-3 border border-white/15">
               <div className="text-lg mb-0.5">{s.icon}</div>
@@ -122,8 +122,8 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {healthTips.map((tip) => (
               <div key={tip.title} className="bg-white rounded-2xl p-4 border border-slate-100 flex items-start gap-3 hover:shadow-sm transition-shadow">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-xl shrink-0">
-                  {tip.icon}
+                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
+                  <tip.icon size={20} className={tip.iconColor} />
                 </div>
                 <div>
                   <p className="font-semibold text-slate-800 text-sm mb-1">{tip.title}</p>

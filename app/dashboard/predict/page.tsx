@@ -136,7 +136,7 @@ export default function PredictPage() {
                     : "border-slate-200 text-slate-600 hover:border-teal-200 hover:bg-teal-50/50"
                 }`}
               >
-                <span className="text-2xl">🔬</span>
+                <span className="text-2xl"></span>
                 Тийм, мэднэ
               </button>
               <button
@@ -144,7 +144,7 @@ export default function PredictPage() {
                 onClick={() => { setKnowsLab(false); router.push("/dashboard/food") }}
                 className="py-4 px-4 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-600 hover:border-orange-200 hover:bg-orange-50/50 transition-all flex flex-col items-center gap-2"
               >
-                <span className="text-2xl">🥗</span>
+                <span className="text-2xl"></span>
                 Үгүй, мэдэхгүй
               </button>
             </div>

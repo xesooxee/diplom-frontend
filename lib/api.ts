@@ -74,6 +74,7 @@ export interface FoodPredictResponse extends PredictResponse {
 
 export interface FoodSearchItem {
   name: string;
+  display_name?: string;
   calories: number;
   carbohydrate: number;
   sugars: number;
@@ -82,10 +83,23 @@ export interface FoodSearchItem {
   fat: number;
 }
 
+export interface DishIngredient extends FoodSearchItem {
+  amount: number;
+}
+
+export interface AdminDish {
+  id: string;
+  name: string;
+  ingredients: DishIngredient[];
+}
+
 export interface ModelInfo {
   name: string;
   available: boolean;
   default: boolean;
+  accuracy?: number | null;
+  roc_auc?: number | null;
+  f1?: number | null;
 }
 
 export async function predict(body: PredictRequest, model: string): Promise<PredictResponse> {
@@ -128,12 +142,38 @@ export async function predictFood(body: FoodPredictRequest): Promise<FoodPredict
 }
 
 export async function searchFoods(query: string): Promise<FoodSearchItem[]> {
-  const res = await fetch(`${API_BASE}/foods?search=${encodeURIComponent(query)}`, {
+  const res = await fetch(`${API_BASE}/foods?search=${encodeURIComponent(query)}&limit=10000`, {
     headers: authHeaders(),
   });
   if (!res.ok) return [];
   const data = await res.json();
   return data.foods ?? [];
+}
+
+export async function getAdminDishes(): Promise<AdminDish[]> {
+  const res = await fetch(`${API_BASE}/admin/dishes`, { headers: authHeaders() });
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function createAdminDish(name: string, ingredients: FoodItem[]): Promise<AdminDish> {
+  const res = await fetch(`${API_BASE}/admin/dishes`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ name, ingredients }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail ?? "Хоол нэмэхэд алдаа гарлаа");
+  return data;
+}
+
+export async function deleteAdminDish(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/dishes/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Хоол устгахад алдаа гарлаа");
 }
 
 export interface AuthResponse {

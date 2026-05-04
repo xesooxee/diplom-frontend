@@ -119,7 +119,7 @@ export default function Home() {
 
           <div className="mb-7">
             <h2 className="text-2xl font-bold text-slate-900 mb-1">
-              {mode === "login" ? "Тавтай морилно уу 👋" : "Бүртгэл үүсгэх"}
+              {mode === "login" ? "Тавтай морилно уу " : "Бүртгэл үүсгэх"}
             </h2>
             <p className="text-slate-500 text-sm">
               {mode === "login"

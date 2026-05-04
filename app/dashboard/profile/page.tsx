@@ -1,11 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { User, Mail, LogOut, Shield, Activity } from "lucide-react"
+import { Mail, Shield, User, Activity, LogOut } from "lucide-react"
 
 export default function ProfilePage() {
-  const router = useRouter()
   const [email, setEmail] = useState("")
 
   useEffect(() => {
@@ -15,7 +13,7 @@ export default function ProfilePage() {
   function logout() {
     localStorage.removeItem("token")
     localStorage.removeItem("email")
-    router.replace("/")
+    window.location.href = "/"
   }
 
   const initials = email ? email[0].toUpperCase() : "U"
@@ -28,9 +26,9 @@ export default function ProfilePage() {
       </div>
 
       {/* Avatar card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-6">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
         <div className="flex items-center gap-5">
-          <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-white text-3xl font-bold shadow-sm shrink-0">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-white text-3xl font-bold shrink-0">
             {initials}
           </div>
           <div>
@@ -45,17 +43,17 @@ export default function ProfilePage() {
 
       {/* Info cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-5 flex items-start gap-4">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-start gap-4">
           <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center shrink-0">
             <Mail size={18} className="text-blue-500" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xs text-slate-400 font-medium mb-0.5">И-мэйл хаяг</p>
             <p className="font-semibold text-slate-800 text-sm truncate">{email || "—"}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-5 flex items-start gap-4">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-start gap-4">
           <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center shrink-0">
             <Shield size={18} className="text-teal-500" />
           </div>
@@ -65,7 +63,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-5 flex items-start gap-4">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-start gap-4">
           <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center shrink-0">
             <Activity size={18} className="text-violet-500" />
           </div>
@@ -75,7 +73,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-5 flex items-start gap-4">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-start gap-4">
           <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center shrink-0">
             <User size={18} className="text-amber-500" />
           </div>
